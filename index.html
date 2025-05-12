@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drawdown Risk Calculator</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .calculator {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+      background-color: #333;
+      color: white;
+    }
+
+    button {
+      padding: 10px;
+      background-color: #00bcd4;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #0097a7;
+    }
+
+    hr {
+      border: 1px solid #444;
+      margin: 20px 0;
+    }
+
+    p {
+      font-size: 16px;
+      margin: 10px 0;
+    }
+
+    strong {
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <h2>Drawdown Risk Calculator</h2>
+
+    <label for="currentDd">Current Remaining Drawdown ($):</label>
+    <input type="number" id="currentDd" placeholder="e.g., 500" oninput="updateRisk(true)">
+
+    <label for="adjustment">Adjust Amount (Win + / Loss -):</label>
+    <input type="number" id="adjustment" placeholder="e.g., -50 or +25">
+    <button onclick="applyAdjustment()">Apply Change</button>
+
+    <hr>
+
+    <p><strong>Remaining Drawdown:</strong> $<span id="remainingDd">0.00</span></p>
+    <p><strong>Next Trade Risk (10%):</strong> $<span id="riskOutput">0.00</span></p>
+  </div>
+
+  <script>
+    let remainingDd = 0;
+    let initialDd = 0;
+
+    function loadSavedData() {
+      const saved = localStorage.getItem("remainingDd");
+      const savedInitial = localStorage.getItem("initialDd");
+
+      if (saved !== null) remainingDd = parseFloat(saved);
+      if (savedInitial !== null) initialDd = parseFloat(savedInitial);
+
+      updateRisk(false);
+    }
+
+    function updateRisk(fromMainInput = false) {
+      const inputField = document.getElementById("currentDd");
+      const inputValue = parseFloat(inputField.value);
+
+      if (fromMainInput && !isNaN(inputValue) && inputValue >= 0) {
+        remainingDd = inputValue;
+        initialDd = inputValue;
+      }
+
+      if (remainingDd < 0) remainingDd = 0;
+      if (initialDd <= 0) initialDd = remainingDd;
+
+      // Save data
+      localStorage.setItem("remainingDd", remainingDd.toFixed(2));
+      localStorage.setItem("initialDd", initialDd.toFixed(2));
+
+      // Update all displays
+      document.getElementById("remainingDd").innerText = remainingDd.toFixed(2);
+      document.getElementById("riskOutput").innerText = (remainingDd * 0.10).toFixed(2);
+
+      inputField.value = remainingDd.toFixed(2);
+    }
+
+    function applyAdjustment() {
+      const adjustmentInput = document.getElementById("adjustment");
+      const adjustment = parseFloat(adjustmentInput.value);
+
+      if (isNaN(adjustment)) return;
+
+      remainingDd += adjustment;
+      if (remainingDd < 0) remainingDd = 0;
+
+      updateRisk();
+      adjustmentInput.value = ""; // Clear input
+    }
+
+    window.onload = loadSavedData;
+  </script>
+</body>
+</html>
