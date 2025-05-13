@@ -6,38 +6,58 @@
   <title>Drawdown Risk Calculator</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #121212;
       color: #f0f0f0;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
     }
+
+    .container {
+      text-align: center;
+      background-color: #1a1a1a;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+      width: 90%;
+      max-width: 500px;
+    }
+
     h1 {
-      text-align: center;
-      margin-bottom: 5px;
-    }
-    .current-risk {
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+      font-size: 28px;
       color: #00ffcc;
     }
+
+    .current-risk {
+      font-size: 22px;
+      font-weight: bold;
+      color: #00ffcc;
+      margin-bottom: 20px;
+    }
+
     .section {
-      margin: 20px 0;
+      margin: 15px 0;
     }
+
     input, button {
-      padding: 8px;
+      padding: 10px;
       font-size: 16px;
-      margin: 4px;
-      background-color: #1e1e1e;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background-color: #2a2a2a;
       color: #fff;
-      border: 1px solid #444;
     }
+
     button:hover {
-      background-color: #333;
+      background-color: #444;
+      cursor: pointer;
     }
+
     #historyLog {
       max-height: 200px;
       overflow-y: auto;
@@ -47,50 +67,53 @@
       font-size: 14px;
       margin-top: 10px;
       display: none;
+      text-align: left;
     }
+
     .highlight {
       font-weight: bold;
       font-size: 18px;
       margin-top: 10px;
       color: #00bfff;
     }
+
     .toggle-btn {
       background-color: #292929;
-      border: none;
       font-weight: bold;
-      cursor: pointer;
       color: #00ccff;
     }
   </style>
 </head>
 <body>
-  <h1>Drawdown Risk Calculator</h1>
-  <div class="current-risk">Current Risk: <span id="riskDisplay">$0.00</span></div>
+  <div class="container">
+    <h1>Drawdown Risk Calculator</h1>
+    <div class="current-risk">Current Risk: <span id="riskDisplay">$0.00</span></div>
 
-  <div class="section">
-    <label>Set Total Drawdown: </label>
-    <input type="number" id="initialDD" placeholder="e.g. 500" />
-    <button onclick="setInitialDrawdown()">Set</button>
-  </div>
+    <div class="section">
+      <label>Set Total Drawdown:</label><br>
+      <input type="number" id="initialDD" placeholder="e.g. 500" />
+      <button onclick="setInitialDrawdown()">Set</button>
+    </div>
 
-  <div class="section">
-    <div class="highlight">Current DD: <span id="ddDisplay">$0.00</span></div>
-  </div>
+    <div class="section">
+      <div class="highlight">Current DD: <span id="ddDisplay">$0.00</span></div>
+    </div>
 
-  <div class="section">
-    <button onclick="takeTrade()">✅ Take Trade</button>
-    <button onclick="undoLastRisk()">🔙 Backspace</button>
-  </div>
+    <div class="section">
+      <button onclick="takeTrade()">✅ Take Trade</button>
+      <button onclick="undoLastRisk()">🔙 Backspace</button>
+    </div>
 
-  <div class="section">
-    <input type="number" id="manualAmount" placeholder="Enter amount" />
-    <button onclick="addAmount()">➕ Add</button>
-    <button onclick="subtractAmount()">➖ Subtract</button>
-  </div>
+    <div class="section">
+      <input type="number" id="manualAmount" placeholder="Enter amount" />
+      <button onclick="addAmount()">➕ Add</button>
+      <button onclick="subtractAmount()">➖ Subtract</button>
+    </div>
 
-  <div class="section">
-    <button class="toggle-btn" onclick="toggleHistory()">📜 Show/Hide History</button>
-    <div id="historyLog"></div>
+    <div class="section">
+      <button class="toggle-btn" onclick="toggleHistory()">📜 Show/Hide History</button>
+      <div id="historyLog"></div>
+    </div>
   </div>
 
   <script>
@@ -170,7 +193,7 @@
       localStorage.setItem('dd', currentDrawdown);
     }
 
-    // Load on start
+    // Initialize on page load
     updateDrawdownDisplay();
   </script>
 </body>
