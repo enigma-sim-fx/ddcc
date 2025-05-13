@@ -26,16 +26,10 @@
       max-width: 500px;
     }
 
-    h1 {
-      margin-bottom: 10px;
-      font-size: 28px;
-      color: #00ffcc;
-    }
-
     .current-risk {
       font-size: 22px;
       font-weight: bold;
-      color: #00ffcc;
+      color: #1e90ff;
       margin-bottom: 20px;
     }
 
@@ -70,6 +64,18 @@
       text-align: left;
     }
 
+    .history-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .history-text {
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+
     .highlight {
       font-weight: bold;
       font-size: 18px;
@@ -86,22 +92,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>Drawdown Risk Calculator</h1>
     <div class="current-risk">Current Risk: <span id="riskDisplay">$0.00</span></div>
 
     <div class="section">
-      <label>Set Total Drawdown:</label><br>
-      <input type="number" id="initialDD" placeholder="e.g. 500" />
-      <button onclick="setInitialDrawdown()">Set</button>
-    </div>
-
-    <div class="section">
       <div class="highlight">Current DD: <span id="ddDisplay">$0.00</span></div>
-    </div>
-
-    <div class="section">
-      <button onclick="takeTrade()">✅ Take Trade</button>
-      <button onclick="undoLastRisk()">🔙 Backspace</button>
     </div>
 
     <div class="section">
@@ -114,74 +108,124 @@
       <button class="toggle-btn" onclick="toggleHistory()">📜 Show/Hide History</button>
       <div id="historyLog"></div>
     </div>
+
+    <div class="section" style="margin-top: 40px;">
+      <label>Set Total Drawdown:</label><br>
+      <input type="number" id="initialDD" placeholder="e.g. 500" />
+      <button onclick="setInitialDrawdown()">Set</button>
+    </div>
   </div>
 
   <script>
-    let currentDrawdown = parseFloat(localStorage.getItem('dd')) || 0;
-    let lastRiskAmount = 0;
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let baseDD = parseFloat(localStorage.getItem('baseDD')) || 0;
 
-    function updateDrawdownDisplay() {
-      document.getElementById('ddDisplay').textContent = `$${currentDrawdown.toFixed(2)}`;
-      document.getElementById('riskDisplay').textContent = `$${(currentDrawdown * 0.1).toFixed(2)}`;
+    function updateDisplays() {
+      const netChange = transactions.reduce((acc, t) => acc + t.amount, 0);
+      const currentDD = baseDD + netChange;
+      const currentRisk = currentDD * 0.1;
+
+      document.getElementById('ddDisplay').textContent = `$${currentDD.toFixed(2)}`;
+      document.getElementById('riskDisplay').textContent = `$${currentRisk.toFixed(2)}`;
+    }
+
+    function saveData() {
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      localStorage.setItem('baseDD', baseDD);
     }
 
     function setInitialDrawdown() {
-      const input = document.getElementById('initialDD').value;
-      const value = parseFloat(input);
-      if (!isNaN(value) && value >= 0) {
-        currentDrawdown = value;
-        saveToLocalStorage();
-        updateDrawdownDisplay();
-        addToHistory(`Initial drawdown set to $${value.toFixed(2)}.`);
-      }
-    }
-
-    function takeTrade() {
-      lastRiskAmount = currentDrawdown * 0.1;
-      currentDrawdown -= lastRiskAmount;
-      updateDrawdownDisplay();
-      saveToLocalStorage();
-      addToHistory(`Trade taken. Risked $${lastRiskAmount.toFixed(2)}.`);
-    }
-
-    function undoLastRisk() {
-      if (lastRiskAmount > 0) {
-        currentDrawdown += lastRiskAmount;
-        updateDrawdownDisplay();
-        addToHistory(`Undo trade. Restored $${lastRiskAmount.toFixed(2)}.`);
-        lastRiskAmount = 0;
-        saveToLocalStorage();
+      const value = parseFloat(document.getElementById('initialDD').value);
+      if (!isNaN(value)) {
+        baseDD = value;
+        transactions = [];
+        saveData();
+        renderHistory();
+        updateDisplays();
+        addToHistory(`Initial drawdown set to $${value.toFixed(2)}.`, 0);
       }
     }
 
     function addAmount() {
-      const input = document.getElementById('manualAmount').value;
-      const amount = parseFloat(input);
-      if (!isNaN(amount)) {
-        currentDrawdown += amount;
-        updateDrawdownDisplay();
-        saveToLocalStorage();
-        addToHistory(`Manually added $${amount.toFixed(2)}.`);
+      const value = parseFloat(document.getElementById('manualAmount').value);
+      if (!isNaN(value)) {
+        const entry = {
+          amount: value,
+          message: `Manually added $${value.toFixed(2)}.`,
+          time: getNYTimeString()
+        };
+        transactions.push(entry);
+        saveData();
+        renderHistory();
+        updateDisplays();
       }
     }
 
     function subtractAmount() {
-      const input = document.getElementById('manualAmount').value;
-      const amount = parseFloat(input);
-      if (!isNaN(amount)) {
-        currentDrawdown -= amount;
-        updateDrawdownDisplay();
-        saveToLocalStorage();
-        addToHistory(`Manually subtracted $${amount.toFixed(2)}.`);
+      const value = parseFloat(document.getElementById('manualAmount').value);
+      if (!isNaN(value)) {
+        const entry = {
+          amount: -value,
+          message: `Manually subtracted $${value.toFixed(2)}.`,
+          time: getNYTimeString()
+        };
+        transactions.push(entry);
+        saveData();
+        renderHistory();
+        updateDisplays();
       }
     }
 
-    function addToHistory(message) {
+    function renderHistory() {
       const log = document.getElementById("historyLog");
-      const entry = document.createElement("div");
-      const timestamp = new Date().toLocaleTimeString();
-      entry.textContent = `[${timestamp}] ${message}`;
-      log.prepend(entry);
+      log.innerHTML = '';
+
+      transactions.slice().reverse().forEach((entry, index) => {
+        const div = document.createElement("div");
+        div.className = "history-entry";
+
+        const text = document.createElement("span");
+        text.className = "history-text";
+        text.textContent = `[${entry.time}] ${entry.message}`;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.onclick = () => {
+          const trueIndex = transactions.length - 1 - index;
+          transactions.splice(trueIndex, 1);
+          saveData();
+          renderHistory();
+          updateDisplays();
+        };
+
+        div.appendChild(text);
+        div.appendChild(deleteBtn);
+        log.appendChild(div);
+      });
+    }
+
+    function addToHistory(message, amount) {
+      const entry = {
+        amount: amount,
+        message: message,
+        time: getNYTimeString()
+      };
+      transactions.push(entry);
+      saveData();
+      renderHistory();
+      updateDisplays();
+    }
+
+    function getNYTimeString() {
+      const now = new Date();
+      const options = {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      return new Intl.DateTimeFormat('en-US', options).format(now);
     }
 
     function toggleHistory() {
@@ -189,12 +233,8 @@
       log.style.display = (log.style.display === "none") ? "block" : "none";
     }
 
-    function saveToLocalStorage() {
-      localStorage.setItem('dd', currentDrawdown);
-    }
-
-    // Initialize on page load
-    updateDrawdownDisplay();
+    updateDisplays();
+    renderHistory();
   </script>
 </body>
 </html>
