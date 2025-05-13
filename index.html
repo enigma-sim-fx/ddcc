@@ -1,149 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Drawdown Risk Calculator</title>
   <style>
     body {
-      background-color: #111;
-      color: #fff;
       font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .calculator {
-      background: #222;
       padding: 20px;
-      border-radius: 10px;
-      width: 320px;
+      max-width: 500px;
+      margin: auto;
+      background: #f0f4f8;
+    }
+    h1 {
       text-align: center;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: none;
-      font-size: 16px;
-      background-color: #333;
-      color: white;
-    }
-
-    button {
-      padding: 10px;
-      background-color: #00bcd4;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      color: white;
-      width: 100%;
-    }
-
-    button:hover {
-      background-color: #0097a7;
-    }
-
-    hr {
-      border: 1px solid #444;
+    .section {
       margin: 20px 0;
     }
-
-    p {
+    input, button {
+      padding: 8px;
       font-size: 16px;
-      margin: 10px 0;
+      margin: 4px;
     }
-
-    strong {
+    #historyLog {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .highlight {
+      font-weight: bold;
       font-size: 18px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="calculator">
-    <h2>Drawdown Risk Calculator</h2>
+  <h1>Drawdown Risk Calculator</h1>
 
-    <label for="currentDd">Current Remaining Drawdown ($):</label>
-    <input type="number" id="currentDd" placeholder="e.g., 500" oninput="updateRisk(true)">
+  <div class="section">
+    <label>Set Total Drawdown: </label>
+    <input type="number" id="initialDD" placeholder="e.g. 500" />
+    <button onclick="setInitialDrawdown()">Set</button>
+  </div>
 
-    <label for="adjustment">Adjust Amount (Win + / Loss -):</label>
-    <input type="number" id="adjustment" placeholder="e.g., -50 or +25">
-    <button onclick="applyAdjustment()">Apply Change</button>
+  <div class="section">
+    <div class="highlight">Current DD: <span id="ddDisplay">$0.00</span></div>
+    <div class="highlight">Current Risk (10%): <span id="riskDisplay">$0.00</span></div>
+  </div>
 
-    <hr>
+  <div class="section">
+    <button onclick="takeTrade()">✅ Take Trade</button>
+    <button onclick="undoLastRisk()">🔙 Backspace</button>
+  </div>
 
-    <p><strong>Remaining Drawdown:</strong> $<span id="remainingDd">0.00</span></p>
-    <p><strong>Next Trade Risk (10%):</strong> $<span id="riskOutput">0.00</span></p>
+  <div class="section">
+    <input type="number" id="manualAmount" placeholder="Enter amount" />
+    <button onclick="addAmount()">➕ Add</button>
+    <button onclick="subtractAmount()">➖ Subtract</button>
+  </div>
+
+  <div class="section">
+    <h3>History Log</h3>
+    <div id="historyLog"></div>
   </div>
 
   <script>
-    let remainingDd = 0;
-    let initialDd = 0;
+    let currentDrawdown = parseFloat(localStorage.getItem('dd')) || 0;
+    let lastRiskAmount = 0;
 
-    function loadSavedData() {
-      const saved = localStorage.getItem("remainingDd");
-      const savedInitial = localStorage.getItem("initialDd");
-
-      if (saved !== null) remainingDd = parseFloat(saved);
-      if (savedInitial !== null) initialDd = parseFloat(savedInitial);
-
-      updateRisk(false);
+    function updateDrawdownDisplay() {
+      document.getElementById('ddDisplay').textContent = `$${currentDrawdown.toFixed(2)}`;
+      document.getElementById('riskDisplay').textContent = `$${(currentDrawdown * 0.1).toFixed(2)}`;
     }
 
-    function updateRisk(fromMainInput = false) {
-      const inputField = document.getElementById("currentDd");
-      const inputValue = parseFloat(inputField.value);
-
-      if (fromMainInput && !isNaN(inputValue) && inputValue >= 0) {
-        remainingDd = inputValue;
-        initialDd = inputValue;
+    function setInitialDrawdown() {
+      const input = document.getElementById('initialDD').value;
+      const value = parseFloat(input);
+      if (!isNaN(value) && value >= 0) {
+        currentDrawdown = value;
+        saveToLocalStorage();
+        updateDrawdownDisplay();
+        addToHistory(`Initial drawdown set to $${value.toFixed(2)}.`);
       }
-
-      if (remainingDd < 0) remainingDd = 0;
-      if (initialDd <= 0) initialDd = remainingDd;
-
-      // Save data
-      localStorage.setItem("remainingDd", remainingDd.toFixed(2));
-      localStorage.setItem("initialDd", initialDd.toFixed(2));
-
-      // Update all displays
-      document.getElementById("remainingDd").innerText = remainingDd.toFixed(2);
-      document.getElementById("riskOutput").innerText = (remainingDd * 0.10).toFixed(2);
-
-      inputField.value = remainingDd.toFixed(2);
     }
 
-    function applyAdjustment() {
-      const adjustmentInput = document.getElementById("adjustment");
-      const adjustment = parseFloat(adjustmentInput.value);
-
-      if (isNaN(adjustment)) return;
-
-      remainingDd += adjustment;
-      if (remainingDd < 0) remainingDd = 0;
-
-      updateRisk();
-      adjustmentInput.value = ""; // Clear input
+    function takeTrade() {
+      lastRiskAmount = currentDrawdown * 0.1;
+      currentDrawdown -= lastRiskAmount;
+      updateDrawdownDisplay();
+      saveToLocalStorage();
+      addToHistory(`Trade taken. Risked $${lastRiskAmount.toFixed(2)}.`);
     }
 
-    window.onload = loadSavedData;
+    function undoLastRisk() {
+      if (lastRiskAmount > 0) {
+        currentDrawdown += lastRiskAmount;
+        updateDrawdownDisplay();
+        addToHistory(`Undo trade. Restored $${lastRiskAmount.toFixed(2)}.`);
+        lastRiskAmount = 0;
+        saveToLocalStorage();
+      }
+    }
+
+    function addAmount() {
+      const input = document.getElementById('manualAmount').value;
+      const amount = parseFloat(input);
+      if (!isNaN(amount)) {
+        currentDrawdown += amount;
+        updateDrawdownDisplay();
+        saveToLocalStorage();
+        addToHistory(`Manually added $${amount.toFixed(2)}.`);
+      }
+    }
+
+    function subtractAmount() {
+      const input = document.getElementById('manualAmount').value;
+      const amount = parseFloat(input);
+      if (!isNaN(amount)) {
+        currentDrawdown -= amount;
+        updateDrawdownDisplay();
+        saveToLocalStorage();
+        addToHistory(`Manually subtracted $${amount.toFixed(2)}.`);
+      }
+    }
+
+    function addToHistory(message) {
+      const log = document.getElementById("historyLog");
+      const entry = document.createElement("div");
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      log.prepend(entry);
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('dd', currentDrawdown);
+    }
+
+    // Initial load
+    updateDrawdownDisplay();
   </script>
 </body>
 </html>
