@@ -88,6 +88,18 @@
       font-weight: bold;
       color: #00ccff;
     }
+
+    .input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .input-group input[type="text"] {
+      width: 80px;
+    }
   </style>
 </head>
 <body>
@@ -98,10 +110,11 @@
       <div class="highlight">Current DD: <span id="ddDisplay">$0.00</span></div>
     </div>
 
-    <div class="section">
-      <input type="number" id="manualAmount" placeholder="Enter amount" />
-      <button onclick="addAmount()">➕ Add</button>
-      <button onclick="subtractAmount()">➖ Subtract</button>
+    <div class="section input-group">
+      <input type="text" id="pairName" placeholder="Pair" />
+      <input type="number" id="manualAmount" placeholder="Amount" />
+      <button onclick="addAmount()">➕</button>
+      <button onclick="subtractAmount()">➖</button>
     </div>
 
     <div class="section">
@@ -142,16 +155,17 @@
         saveData();
         renderHistory();
         updateDisplays();
-        addToHistory(`Initial drawdown set to $${value.toFixed(2)}.`, 0);
+        addToHistory(`Initial DD set to $${value.toFixed(2)}.`, 0);
       }
     }
 
     function addAmount() {
       const value = parseFloat(document.getElementById('manualAmount').value);
+      const pair = document.getElementById('pairName').value.trim();
       if (!isNaN(value)) {
         const entry = {
           amount: value,
-          message: `Manually added $${value.toFixed(2)}.`,
+          message: `${pair ? pair + ': ' : ''}Added $${value.toFixed(2)}.`,
           time: getNYTimeString()
         };
         transactions.push(entry);
@@ -163,10 +177,11 @@
 
     function subtractAmount() {
       const value = parseFloat(document.getElementById('manualAmount').value);
+      const pair = document.getElementById('pairName').value.trim();
       if (!isNaN(value)) {
         const entry = {
           amount: -value,
-          message: `Manually subtracted $${value.toFixed(2)}.`,
+          message: `${pair ? pair + ': ' : ''}Subtracted $${value.toFixed(2)}.`,
           time: getNYTimeString()
         };
         transactions.push(entry);
